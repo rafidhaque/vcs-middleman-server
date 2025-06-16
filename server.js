@@ -1,6 +1,15 @@
 // A simple in-memory middleman server
 const express = require('express');
-const cors = require('cors');
+
+// A more explicit CORS configuration for Vercel
+app.use(cors({
+  origin: '*', // Allow all origins (you could restrict this to your dApp's domain in production)
+  methods: ['GET', 'POST', 'OPTIONS'], // Explicitly allow OPTIONS for preflight
+  allowedHeaders: ['Content-Type']
+}));
+
+// This is an extra handler to ensure OPTIONS requests are always handled correctly.
+app.options('*', cors());
 
 const app = express();
 app.use(express.json()); // Middleware to parse JSON bodies
