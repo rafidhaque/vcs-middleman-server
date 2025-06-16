@@ -1,34 +1,26 @@
-// A simple in-memory middleman server
+// The final, simplest, and most robust server configuration.
 const express = require('express');
-
-// A more explicit CORS configuration for Vercel
-app.use(cors({
-  origin: '*', // Allow all origins (you could restrict this to your dApp's domain in production)
-  methods: ['GET', 'POST', 'OPTIONS'], // Explicitly allow OPTIONS for preflight
-  allowedHeaders: ['Content-Type']
-}));
-
-// This is an extra handler to ensure OPTIONS requests are always handled correctly.
-app.options('*', cors());
+const cors = require('cors');
 
 const app = express();
-app.use(express.json()); // Middleware to parse JSON bodies
-app.use(cors()); // Middleware to allow cross-origin requests from our dApp
 
-// In-memory database. In a real system, you'd use Redis or another DB.
-// For our experiment, this is perfect.
-const shareStore = {}; // e.g., { "QmHash123": "keyShareABC" }
+// 1. Enable CORS for all requests. This is the simplest and best way.
+app.use(cors());
 
-const PORT = 3000; // We'll run this on localhost:3000
+// 2. Enable the server to parse incoming JSON.
+app.use(express.json());
+
+// In-memory database.
+const shareStore = {};
+
+const PORT = 3000; // Vercel will manage the port automatically.
 
 // Endpoint to store a share
 app.post('/share', (req, res) => {
     const { ipfsHash, middlemanShare } = req.body;
-
     if (!ipfsHash || !middlemanShare) {
         return res.status(400).json({ error: 'ipfsHash and middlemanShare are required' });
     }
-
     shareStore[ipfsHash] = middlemanShare;
     console.log(`Stored share for ${ipfsHash}`);
     res.status(200).json({ success: true, message: `Share for ${ipfsHash} stored.` });
@@ -38,7 +30,6 @@ app.post('/share', (req, res) => {
 app.get('/share/:ipfsHash', (req, res) => {
     const { ipfsHash } = req.params;
     const share = shareStore[ipfsHash];
-
     if (share) {
         console.log(`Retrieved share for ${ipfsHash}`);
         res.status(200).json({ success: true, middlemanShare: share });
@@ -48,6 +39,12 @@ app.get('/share/:ipfsHash', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Middleman server listening on http://localhost:${PORT}`);
-});
+// This is only for local testing. Vercel uses the routing in vercel.json.
+if (process.env.VERCEL !== '1') {
+    app.listen(PORT, () => {
+        console.log(`Middleman server listening on http://localhost:${PORT}`);
+    });
+}
+
+// Export the app for Vercel's serverless environment
+module.exports = app;
